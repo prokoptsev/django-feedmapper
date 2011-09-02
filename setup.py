@@ -31,7 +31,7 @@ setup(
     author_email = 'appdev@ngs.org',
     description = DESC,
     long_description = get_readme(),
-    packages = find_packages(),
+    packages = find_packages(exclude=('example',)),
     namespace_packages=[],
     include_package_data = True,
     install_requires = read_file('requirements.txt'),
@@ -45,4 +45,3 @@ setup(
         'Framework :: Django',
     ],
 )
-

@@ -2,5 +2,5 @@ include CHANGELOG LICENSE README.rst requirements.txt
 recursive-include feedmapper/fixtures *
 recursive-include feedmapper/templates *
 recursive-include feedmapper/tests *.xml
-recursive-include example/myapp/fixtures *
+recursive-exclude example *
 global-exclude *.un~
