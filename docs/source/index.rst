@@ -68,8 +68,8 @@ We need to specify a JSON map:
             "date_joined": {
               "transformer": "convert_date",
               "fields": ["date_joined"]
-            }, 
-          } 
+            },
+          }
         }
       }
     }
@@ -89,12 +89,22 @@ We need to tell the parser the path to all of the ``<user>`` elements:
 
           "nodePath": "users.user",
 
-If the mapping has purging turned off, we need to supply a unique idenfier for Django ORM ``get`` calls. In this case our resulting ORM call would be ``User.objects.get(username=username)``:
+If the mapping has purging turned off, we need to supply a unique idenfier for Django ORM ``get`` calls.
+In this case our resulting ORM call would be ``User.objects.get(username=username)``:
 
 .. code-block:: javascript
    :linenos:
 
           "identifier": "username",
+
+You can also do multiple identifiers like so:
+
+.. code-block:: javascript
+    :linenos:
+
+          "identifier": ["username" "date_joined"],
+
+This would then generate the ORM call of ``User.objects.get(username=username, date_joined=date_joined)``. 
 
 Now the fun part. Mapping the fields:
 
@@ -108,8 +118,8 @@ Now the fun part. Mapping the fields:
             "date_joined": {
               "transformer": "convert_date",
               "fields": ["date_joined"]
-            }, 
-          } 
+            },
+          }
 
 We've got example of all three types of field mappings here.
 
@@ -136,7 +146,7 @@ We've got example of all three types of field mappings here.
             "date_joined": {
               "transformer": "convert_date",
               "fields": ["date_joined"]
-            }, 
+            },
 
 Scheduling
 **********
@@ -192,4 +202,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
