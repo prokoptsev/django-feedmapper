@@ -15,7 +15,7 @@ class Parser(object):
 
     def __init__(self, mapping):
         self.mapping = mapping
-        self.nsmap = {}
+        self.nsmap = getattr(self, 'nsmap', {})
         self.data_dir = FEEDMAPPER['DATA_DIR']
 
     @property
@@ -83,12 +83,20 @@ class XMLParser(Parser):
             for model_string, configuration in model_mappings.items():
                 if not self.validate_model_format(model_string):
                     raise ValueError("Invalid model format in JSON mapping: %s" % model_string)
-                identifier = configuration.get('identifier')
-                if not identifier and not self.mapping.purge:
+                identifiers = configuration.get('identifier')
+                if identifiers and isinstance(identifiers, basestring):
+                    identifiers = [identifiers]
+                if not identifiers and not self.mapping.purge:
                     raise UserWarning("Purging is off and the JSON mapping doesn't supply an identifier.")
                 model = get_model(*model_string.split('.'))
+                assert not model is None, 'Model %s not found' % model_string
                 node_path = configuration['nodePath'].replace('.', '/')
                 fields = configuration['fields']
+                reverse_field_lookup = {}
+                for key, value in fields.items():
+                    if isinstance(value, dict) and 'fields' in value:
+                        value = value['fields']
+                    reverse_field_lookup[str(value)] = key
                 nodes = root.xpath(node_path, namespaces=self.nsmap)
 
                 if self.mapping.purge:
@@ -96,34 +104,38 @@ class XMLParser(Parser):
                     model.objects.all().delete()
 
                 for node in nodes:
-                    if self.mapping.purge:
-                        instance = model()
-                    else:
+                    try:
+                        assert not self.mapping.purge
                         # purge is turned off, retrieve an existing instance
-                        identifier_value = node.find(identifier, namespaces=self.nsmap).text
-                        try:
-                            instance = model.objects.get(pk=identifier_value)
-                        except model.DoesNotExist:
-                            instance = model()
+                        lookup = {}
+                        for identifier in identifiers:
+                            identifier = lookup_name = str(identifier)
+                            if identifier in reverse_field_lookup:
+                                lookup_name = reverse_field_lookup[identifier]
+                            lookup[str(lookup_name)] = node.find(identifier, namespaces=self.nsmap).text
+                        instance = model.objects.get(**lookup)
+                    except (AssertionError, model.DoesNotExist):
+                        instance = model()
+
                     for field, target in fields.items():
-                        if field != identifier:
-                            if isinstance(target, basestring):
-                                # maps one model field to one feed node
-                                value = self.get_value(node, target)
-                            elif isinstance(target, list):
-                                # maps one model field to multiple feed nodes
-                                value = self.join_fields(node, target)
-                            elif isinstance(target, dict):
-                                value = None
-                                if 'transformer' in target:
-                                    # maps one model field to a transformer method
-                                    transformer = getattr(instance, target['transformer'])
-                                    text_list = [self.get_value(node, target_field) for target_field in target['fields']]
-                                    value = transformer(*text_list)
-                                if 'default' in target and not value:
-                                    # maps one model field to a default value
-                                    value = target['default']
-                            setattr(instance, field, value)
+                        if isinstance(target, basestring):
+                            # maps one model field to one feed node
+                            value = self.get_value(node, target)
+                        elif isinstance(target, list):
+                            # maps one model field to multiple feed nodes
+                            value = self.join_fields(node, target)
+                        elif isinstance(target, dict):
+                            value = None
+                            if 'transformer' in target:
+                                # maps one model field to a transformer method
+                                transformer = getattr(instance, target['transformer'])
+                                assert callable(transformer), 'The transformer %r is not a callable' % transformer
+                                value = transformer(*[self.get_value(node, target_field)
+                                                      for target_field in target['fields']])
+                            if 'default' in target and not value:
+                                # maps one model field to a default value
+                                value = target['default']
+                        setattr(instance, field, value)
                     instance.save()
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
@@ -132,7 +144,7 @@ class XMLParser(Parser):
             self.mapping.parse_log = str(e.error_log)
         except IOError, e:
             self.mapping.parse_succeeded = False
-            self.mapping.parse_log = e.message
+            self.mapping.parse_log = str(e)
         # clear the lxml error log so errors don't compound
         etree.clear_error_log()
         self.mapping.save()
@@ -144,8 +156,4 @@ class XMLParser(Parser):
 
 class AtomParser(XMLParser):
     "An XML parser for the Atom standard."
-
-    def __init__(self, mapping):
-        super(AtomParser, self).__init__(mapping)
-        self.nsmap = {'atom': 'http://www.w3.org/2005/Atom'}
-
+    nsmap = {'atom': 'http://www.w3.org/2005/Atom'}

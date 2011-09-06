@@ -26,6 +26,9 @@ class Thing(models.Model):
     other = models.CharField(max_length=50)
     master = models.CharField(max_length=50)
 
+    def __unicode__(self):
+        return self.name
+
     def convert_name(self, first_name, last_name):
         return "%s %s" % (first_name, last_name)
 
@@ -152,6 +155,31 @@ class FeedMapperTests(TestCase):
         self.assertEqual(mapping.parse_log, "")
         self.assertTrue(mapping.parse_succeeded)
 
+    def test_multiple_identifiers(self):
+        "Ensure that you can use multiple identifiers to get data from the database."
+        mapping = Mapping.objects.get(pk=4)
+        mapping.source = "http://a.com/notreal.xml"
+        mapping.parse()
+        self.assertNotEqual(mapping.parse_log, "")
+        self.assertFalse(mapping.parse_succeeded)
+        # now re-parse a good data source and see if the log is clear
+        num_things = Thing.objects.count()
+        mapping.source = "multi-ident.xml"
+        mapping.parse()
+        self.assertEqual(mapping.parse_log, "")
+        self.assertTrue(mapping.parse_succeeded)
+        new_num_things = Thing.objects.count()
+        self.assertEqual(num_things + 3, new_num_things)
+
+        things = Thing.objects.all()[new_num_things - 3:]
+        email_dict = dict([(x.name,x.email) for x in things])
+        for n,e in [(u'fetts-vette', u'bfett@darkside.org'),
+                    (u'jfett', u'jfett@darkside.org'),
+                    (u'dfett', u'jfett@darkside.org')]:
+            self.assert_(n in email_dict)
+            self.assertEqual(email_dict[n], e)
+
+
+
     def tearDown(self):
         pass
-

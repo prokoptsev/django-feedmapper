@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<auth>
+    <users>
+        <user>
+            im a clone
+            <id>1</id>
+            <username>fetts-vette</username>
+            <first_name>Boba</first_name>
+            <last_name>Fett</last_name>
+            <email>bfett@darkside.org</email>
+        </user>
+        <user>
+            <id>2</id>
+            <username>jfett</username>
+            <first_name>Jango</first_name>
+            <last_name>Fett</last_name>
+            <email>jfett@darkside.org</email>
+            me too
+        </user>
+        <user>
+            <id>3</id>
+            <username>dfett</username>
+            <first_name>Django</first_name>
+            <last_name>Fett</last_name>
+            <email>jfett@darkside.org</email>
+            im an imposter
+        </user>
+    </users>
+</auth>
