@@ -18,11 +18,16 @@ class Parser(object):
         self.nsmap = {}
         self.data_dir = FEEDMAPPER['DATA_DIR']
 
-    @property
-    def data_source(self):
+    def _get_data_source(self):
         if not self.mapping.source.startswith('/') and not '://' in self.mapping.source:
             return os.path.join(self.data_dir, self.mapping.source)
         return self.mapping.source
+
+    def _set_data_source(self, source):
+        self.mapping.source = source
+        self.mapping.save()
+
+    data_source = property(_get_data_source, _set_data_source)
 
     def validate_model_format(self, model_string):
         "Validate that a model in the JSON mapping is in the format app.model."
@@ -87,6 +92,9 @@ class XMLParser(Parser):
         self.mapping.parse_attempted = datetime.now()
         try:
             tree = etree.parse(self.data_source)
+            if tree.docinfo.URL != self.data_source:
+                # Data source redirects, save the actual source URL
+                self.data_source = tree.docinfo.URL
             root = tree.getroot()
 
             model_mappings = self.mapping.data_map['models']
@@ -164,4 +172,3 @@ class AtomParser(XMLParser):
     def __init__(self, mapping):
         super(AtomParser, self).__init__(mapping)
         self.nsmap = {'atom': 'http://www.w3.org/2005/Atom'}
-
