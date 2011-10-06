@@ -71,7 +71,8 @@ class XMLParser(Parser):
                 # this will get text in an XML node, regardless of placement
                 resolved = ''.join([text.strip() for text in node.xpath("text()")])
             else:
-                resolved = node.find(path, namespaces=self.nsmap).text or ""
+                nval = node.find(path, namespaces=self.nsmap)
+                resolved = nval.text if nval is not None else ""
         return resolved.strip()
 
     def join_fields(self, node, fields):
