@@ -71,8 +71,7 @@ class XMLParser(Parser):
                 # this will get text in an XML node, regardless of placement
                 resolved = ''.join([text.strip() for text in node.xpath("text()")])
             else:
-                nval = node.find(path, namespaces=self.nsmap)
-                resolved = nval.text if nval is not None else ""
+                resolved = node.find(path, namespaces=self.nsmap).text or ""
         return resolved.strip()
 
     def join_fields(self, node, fields):
@@ -119,28 +118,28 @@ class XMLParser(Parser):
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
                         try:
-                            instance = model.objects.get(pk=identifier_value)
+                            instance = model.objects.get(**{identifier: identifier_value})
                         except model.DoesNotExist:
                             instance = model()
                     for field, target in fields.items():
-                        if field != identifier:
-                            if isinstance(target, basestring):
-                                # maps one model field to one feed node
-                                value = self.get_value(node, target)
-                            elif isinstance(target, list):
-                                # maps one model field to multiple feed nodes
-                                value = self.join_fields(node, target)
-                            elif isinstance(target, dict):
-                                value = None
-                                if 'transformer' in target:
-                                    # maps one model field to a transformer method
-                                    transformer = getattr(instance, target['transformer'])
-                                    text_list = [self.get_value(node, target_field) for target_field in target['fields']]
-                                    value = transformer(*text_list)
-                                if 'default' in target and not value:
-                                    # maps one model field to a default value
-                                    value = target['default']
-                            setattr(instance, field, value)
+                        #if field != identifier:
+                        if isinstance(target, basestring):
+                            # maps one model field to one feed node
+                            value = self.get_value(node, target)
+                        elif isinstance(target, list):
+                            # maps one model field to multiple feed nodes
+                            value = self.join_fields(node, target)
+                        elif isinstance(target, dict):
+                            value = None
+                            if 'transformer' in target:
+                                # maps one model field to a transformer method
+                                transformer = getattr(instance, target['transformer'])
+                                text_list = [self.get_value(node, target_field) for target_field in target['fields']]
+                                value = transformer(*text_list)
+                            if 'default' in target and not value:
+                                # maps one model field to a default value
+                                value = target['default']
+                        setattr(instance, field, value)
                     instance.save()
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
@@ -165,4 +164,3 @@ class AtomParser(XMLParser):
     def __init__(self, mapping):
         super(AtomParser, self).__init__(mapping)
         self.nsmap = {'atom': 'http://www.w3.org/2005/Atom'}
-
