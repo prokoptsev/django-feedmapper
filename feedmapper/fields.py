@@ -77,9 +77,9 @@ class JSONField(models.TextField):
     def get_db_prep_save(self, value, connection=None):
         """Convert our JSON object to a string before we save"""
         if not value:
-            return super(JSONField, self).get_db_prep_save("")
+            return super(JSONField, self).get_db_prep_save("", connection)
         else:
-            return super(JSONField, self).get_db_prep_save(dumps(value))
+            return super(JSONField, self).get_db_prep_save(dumps(value), connection)
 
     def south_field_triple(self):
         "Returns a suitable description of this field for South."
