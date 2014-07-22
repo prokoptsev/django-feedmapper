@@ -118,6 +118,13 @@ class XMLParser(Parser):
                 if not self.validate_model_format(model_string):
                     raise ValueError("Invalid model format in JSON mapping: %s" % model_string)
                 identifier = configuration.get('identifier')
+
+                # allow transformation of identifiers
+                identifier_transformer = None
+                if isinstance(identifier, dict):
+                    identifier_transformer = identifier["transformer"]
+                    identifier = identifier["field"]
+
                 if not identifier and not self.mapping.purge:
                     raise UserWarning("Purging is off and the JSON mapping doesn't supply an identifier.")
                 model = get_model(*model_string.split('.'))
@@ -140,6 +147,8 @@ class XMLParser(Parser):
                     else:
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
+                        if identifier_transformer:
+                            identifier_value = getattr(model, identifier_transformer)(identifier_value)
 
                         kwargs = {identifier: identifier_value}
                         new = False
