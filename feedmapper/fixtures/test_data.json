@@ -61,11 +61,11 @@
                 "models": {
                     "feedmapper.AtomEntry": {
                         "fields": {
-                            "atom_id": "atom:id",
-                            "title": "atom:title"
+                            "atom_id": "id",
+                            "title": "title"
                         },
-                        "identifier": "atom:id",
-                        "nodePath": "atom:entry"
+                        "identifier": "id",
+                        "nodePath": "entry"
                     }
                 }
             }, 
