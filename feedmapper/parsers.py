@@ -59,7 +59,7 @@ class Parser(object):
 class XMLParser(Parser):
     "A parser for XML that does not follow any standard."
 
-    def get_value(self, node, path):
+    def get_value(self, node, path, as_text=True):
         "Attempts to retrieve either the node text or node attribute specified."
         if '@' in path:
             if path.count('@') > 1:
@@ -71,8 +71,11 @@ class XMLParser(Parser):
                 # this will get text in an XML node, regardless of placement
                 resolved = ''.join([text.strip() for text in node.xpath("text()")])
             else:
-                resolved = node.find(path, namespaces=self.nsmap).text or ""
-        return resolved.strip()
+		#fixme: hacky shit; separate get_value to get_value and get_value_text
+                resolved = node.findall(path, namespaces=self.nsmap)
+		resolved = ((len(resolved) > 0 and resolved[0].text) or "") if as_text else resolved
+
+        return resolved.strip() if as_text else resolved
 
     def join_fields(self, node, fields):
         "Joins the text for the specified fields."
@@ -117,10 +120,16 @@ class XMLParser(Parser):
                     else:
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
-                        try:
-                            instance = model.objects.get(**{identifier: identifier_value})
-                        except model.DoesNotExist:
-                            instance = model()
+
+			kwargs = {identifier: identifier_value}
+			new = False
+			try:
+                    	    instance = model.objects.get(**kwargs)
+			except model.DoesNotExist:
+			    instance = model(**kwargs)
+			    new = True
+
+		    many_to_many = {}
                     for field, target in fields.items():
                         #if field != identifier:
                         if isinstance(target, basestring):
@@ -134,13 +143,51 @@ class XMLParser(Parser):
                             if 'transformer' in target:
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
-                                text_list = [self.get_value(node, target_field) for target_field in target['fields']]
-                                value = transformer(*text_list)
+
+				transformer_args = []
+				
+				field_is_m2m = False
+				if len(target["fields"]) == 1 and target["fields"][0].endswith("*"):
+				    # we've hit a many2many relation
+				    transformer_args = self.get_value(node, target["fields"][0][:-1], as_text=False)
+				    field_is_m2m = True
+
+				else:
+				    for target_field in target["fields"]:
+					
+					if target_field.endswith("*"):
+					    raise ValueError(u"M2m fields can only contain one target field")
+					else:
+                            		    transformer_args.append(self.get_value(node, target_field))
+
+                                value = transformer(*transformer_args)
+
+				if field_is_m2m:
+				    many_to_many[field] = value
+				    continue
+
                             if 'default' in target and not value:
                                 # maps one model field to a default value
                                 value = target['default']
                         setattr(instance, field, value)
                     instance.save()
+
+		    # handle m2m
+		    for field, values in many_to_many.iteritems():
+			instance_field = getattr(instance, field)
+			old_m2ms = instance_field.all()
+
+			# remove not anymore existing m2ms
+			for old_m2m_value in old_m2ms:
+			    if not old_m2m_value in values:
+				instance_field.remove(old_m2m_value)
+
+			# add new m2ms
+			for value in values:
+			    if not value in old_m2ms:
+				instance_field.add(value)
+		    
+
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
         except etree.Error as e:
