@@ -17,7 +17,15 @@ class Parser(object):
 
     def __init__(self, mapping):
         self.mapping = mapping
-        self.nsmap = {}
+        self.nsmap = {
+            "media": "http://search.yahoo.com/mrss/",
+            "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#",
+            "georss": "http://www.georss.org/georss",
+            "slash": "http://purl.org/rss/1.0/modules/slash/",
+            "sy": "http://purl.org/rss/1.0/modules/syndication/",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "wfw": "http://wellformedweb.org/CommentAPI/",
+        }
         self.data_dir = FEEDMAPPER['DATA_DIR']
 
     @property
@@ -67,6 +75,10 @@ class XMLParser(Parser):
     """
     A parser for XML that does not follow any standard.
     """
+
+    def __init__(self, mapping):
+        super(XMLParser, self).__init__(mapping)
+        self.nsmap.update({'content': "http://purl.org/rss/1.0/modules/content/"})
 
     def get_value(self, node, path, as_text=True):
         """
@@ -240,4 +252,4 @@ class AtomParser(XMLParser):
 
     def __init__(self, mapping):
         super(AtomParser, self).__init__(mapping)
-        self.nsmap = {'atom': 'http://www.w3.org/2005/Atom'}
+        self.nsmap.update({'atom': 'http://www.w3.org/2005/Atom'})
