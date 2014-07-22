@@ -11,7 +11,9 @@ from .settings import FEEDMAPPER
 
 
 class Parser(object):
-    "Base parser class for mapping Django model fields to feed nodes."
+    """
+    Base parser class for mapping Django model fields to feed nodes.
+    """
 
     def __init__(self, mapping):
         self.mapping = mapping
@@ -25,7 +27,9 @@ class Parser(object):
         return self.mapping.source
 
     def validate_model_format(self, model_string):
-        "Validate that a model in the JSON mapping is in the format app.model."
+        """
+        Validate that a model in the JSON mapping is in the format app.model.
+        """
         if not '.' in model_string or model_string.count('.') > 1:
             return False
         return True
@@ -41,7 +45,10 @@ class Parser(object):
         return filter_kwargs
 
     def notify_failure(self, subject=None):
-        "Notify recipients, if specified, of an error during parsing."
+        """
+        Notify recipients, if specified, of an error during parsing.
+        """
+
         if not subject:
             subject = "django-feedmapper parsing failure notice"
         message = render_to_string('feedmapper/notify_failure.txt', {
@@ -57,10 +64,18 @@ class Parser(object):
 
 
 class XMLParser(Parser):
-    "A parser for XML that does not follow any standard."
+    """
+    A parser for XML that does not follow any standard.
+    """
 
     def get_value(self, node, path, as_text=True):
-        "Attempts to retrieve either the node text or node attribute specified."
+        """
+        Attempts to retrieve either the node text or node attribute specified.
+        :param node:
+        :param path:
+        :param as_text:
+        :return:
+        """
         if '@' in path:
             if path.count('@') > 1:
                 raise ValueError("You have more than one attribute accessor. (e.g. foo.@bar.@baz)")
@@ -78,7 +93,12 @@ class XMLParser(Parser):
         return resolved.strip() if as_text else resolved
 
     def join_fields(self, node, fields):
-        "Joins the text for the specified fields."
+        """
+        Joins the text for the specified fields.
+        :param node:
+        :param fields:
+        :return:
+        """
         values = [self.get_value(node, field) for field in fields]
         return " ".join(values)
 
@@ -205,7 +225,9 @@ class XMLParser(Parser):
 
 
 class AtomParser(XMLParser):
-    "An XML parser for the Atom standard."
+    """
+    An XML parser for the Atom standard.
+    """
 
     def __init__(self, mapping):
         super(AtomParser, self).__init__(mapping)
