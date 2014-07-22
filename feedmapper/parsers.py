@@ -71,9 +71,9 @@ class XMLParser(Parser):
                 # this will get text in an XML node, regardless of placement
                 resolved = ''.join([text.strip() for text in node.xpath("text()")])
             else:
-		#fixme: hacky shit; separate get_value to get_value and get_value_text
+                # fixme: hacky shit; separate get_value to get_value and get_value_text
                 resolved = node.findall(path, namespaces=self.nsmap)
-		resolved = ((len(resolved) > 0 and resolved[0].text) or "") if as_text else resolved
+                resolved = ((len(resolved) > 0 and resolved[0].text) or "") if as_text else resolved
 
         return resolved.strip() if as_text else resolved
 
@@ -121,17 +121,17 @@ class XMLParser(Parser):
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
 
-			kwargs = {identifier: identifier_value}
-			new = False
-			try:
-                    	    instance = model.objects.get(**kwargs)
-			except model.DoesNotExist:
-			    instance = model(**kwargs)
-			    new = True
+                        kwargs = {identifier: identifier_value}
+                        new = False
+                        try:
+                            instance = model.objects.get(**kwargs)
+                        except model.DoesNotExist:
+                            instance = model(**kwargs)
+                            new = True
 
-		    many_to_many = {}
+                    many_to_many = {}
                     for field, target in fields.items():
-                        #if field != identifier:
+                        # if field != identifier:
                         if isinstance(target, basestring):
                             # maps one model field to one feed node
                             value = self.get_value(node, target)
@@ -144,27 +144,27 @@ class XMLParser(Parser):
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
 
-				transformer_args = []
-				
-				field_is_m2m = False
-				if len(target["fields"]) == 1 and target["fields"][0].endswith("*"):
-				    # we've hit a many2many relation
-				    transformer_args = self.get_value(node, target["fields"][0][:-1], as_text=False)
-				    field_is_m2m = True
+                                transformer_args = []
 
-				else:
-				    for target_field in target["fields"]:
-					
-					if target_field.endswith("*"):
-					    raise ValueError(u"M2m fields can only contain one target field")
-					else:
-                            		    transformer_args.append(self.get_value(node, target_field))
+                                field_is_m2m = False
+                                if len(target["fields"]) == 1 and target["fields"][0].endswith("*"):
+                                    # we've hit a many2many relation
+                                    transformer_args = self.get_value(node, target["fields"][0][:-1], as_text=False)
+                                    field_is_m2m = True
+
+                                else:
+                                    for target_field in target["fields"]:
+
+                                        if target_field.endswith("*"):
+                                            raise ValueError(u"M2m fields can only contain one target field")
+                                        else:
+                                            transformer_args.append(self.get_value(node, target_field))
 
                                 value = transformer(*transformer_args)
 
-				if field_is_m2m:
-				    many_to_many[field] = value
-				    continue
+                                if field_is_m2m:
+                                    many_to_many[field] = value
+                                    continue
 
                             if 'default' in target and not value:
                                 # maps one model field to a default value
@@ -172,21 +172,20 @@ class XMLParser(Parser):
                         setattr(instance, field, value)
                     instance.save()
 
-		    # handle m2m
-		    for field, values in many_to_many.iteritems():
-			instance_field = getattr(instance, field)
-			old_m2ms = instance_field.all()
+                    # handle m2m
+                    for field, values in many_to_many.iteritems():
+                        instance_field = getattr(instance, field)
+                        old_m2ms = instance_field.all()
 
-			# remove not anymore existing m2ms
-			for old_m2m_value in old_m2ms:
-			    if not old_m2m_value in values:
-				instance_field.remove(old_m2m_value)
+                        # remove not anymore existing m2ms
+                        for old_m2m_value in old_m2ms:
+                            if not old_m2m_value in values:
+                                instance_field.remove(old_m2m_value)
 
-			# add new m2ms
-			for value in values:
-			    if not value in old_m2ms:
-				instance_field.add(value)
-		    
+                        # add new m2ms
+                        for value in values:
+                            if not value in old_m2ms:
+                                instance_field.add(value)
 
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
