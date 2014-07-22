@@ -160,7 +160,7 @@ class XMLParser(Parser):
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
                         if identifier_transformer:
-                            identifier_value = getattr(model, identifier_transformer)(identifier_value)
+                            identifier_value = getattr(model, identifier_transformer)(identifier_value, parser=self)
 
                         kwargs = {identifier: identifier_value}
                         new = False
@@ -201,7 +201,7 @@ class XMLParser(Parser):
                                         else:
                                             transformer_args.append(self.get_value(node, target_field))
 
-                                value = transformer(*transformer_args)
+                                value = transformer(*transformer_args, parser=self)
 
                                 if field_is_m2m:
                                     many_to_many[field] = value
