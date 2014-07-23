@@ -168,12 +168,10 @@ class XMLParser(Parser):
                             identifier_value = getattr(model, identifier_transformer)(identifier_value, parser=self)
 
                         kwargs = {identifier: identifier_value}
-                        new = False
                         try:
                             instance = model.objects.get(**kwargs)
                         except model.DoesNotExist:
                             instance = model(**kwargs)
-                            new = True
 
                     many_to_many = {}
                     for field, target in fields.items():
@@ -194,6 +192,9 @@ class XMLParser(Parser):
                             if 'transformer' in target:
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
+                            else:
+                                # we've got a single field definition with an implicit transformer
+                                target = {"fields": [target]}
 
                             if transformer:
                                 transformer_args = []
