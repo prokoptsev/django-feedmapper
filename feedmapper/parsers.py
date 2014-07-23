@@ -201,11 +201,12 @@ class XMLParser(Parser):
                                         else:
                                             transformer_args.append(self.get_value(node, target_field))
 
-                                value = transformer(*transformer_args, parser=self)
-
                                 if field_is_m2m:
-                                    many_to_many[field] = value
+                                    many_to_many[field] = (transformer, transformer_args, {"parser": self})
                                     continue
+                                else:
+                                    value = transformer(*transformer_args, parser=self)
+
 
                             if 'default' in target and not value:
                                 # maps one model field to a default value
@@ -214,19 +215,9 @@ class XMLParser(Parser):
                     instance.save()
 
                     # handle m2m
-                    for field, values in many_to_many.iteritems():
-                        instance_field = getattr(instance, field)
-                        old_m2ms = instance_field.all()
+                    for transformer, args, kwargs in many_to_many.values():
+                        getattr(instance, transformer)(*args, **kwargs)
 
-                        # remove not anymore existing m2ms
-                        for old_m2m_value in old_m2ms:
-                            if not old_m2m_value in values:
-                                instance_field.remove(old_m2m_value)
-
-                        # add new m2ms
-                        for value in values:
-                            if not value in old_m2ms:
-                                instance_field.add(value)
 
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
