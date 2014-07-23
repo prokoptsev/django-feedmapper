@@ -88,18 +88,23 @@ class XMLParser(Parser):
         :param as_text:
         :return:
         """
+        context = node
+        if path.startswith("~"):
+            path = path[1:]
+            context = node.getroot()
+
         if '@' in path:
             if path.count('@') > 1:
                 raise ValueError("You have more than one attribute accessor. (e.g. foo.@bar.@baz)")
             path, attr = path.rsplit('.@')
-            resolved = node.find(path, namespaces=self.nsmap).attrib.get(attr, "")
+            resolved = context.find(path, namespaces=self.nsmap).attrib.get(attr, "")
         else:
             if path == ".":
                 # this will get text in an XML node, regardless of placement
-                resolved = ''.join([text.strip() for text in node.xpath("text()")])
+                resolved = ''.join([text.strip() for text in context.xpath("text()")])
             else:
                 # fixme: hacky shit; separate get_value to get_value and get_value_text
-                resolved = node.findall(path, namespaces=self.nsmap)
+                resolved = context.findall(path, namespaces=self.nsmap)
                 resolved = ((len(resolved) > 0 and resolved[0].text) or "") if as_text else resolved
 
         return resolved.strip() if as_text else resolved
