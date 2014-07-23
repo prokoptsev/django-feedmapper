@@ -214,7 +214,8 @@ class XMLParser(Parser):
                                             transformer_args.append(self.get_value(node, target_field))
 
                                 if field_is_m2m:
-                                    many_to_many[field] = (transformer, transformer_args, {"parser": self})
+                                    many_to_many[field] = (
+                                    getattr(instance, transformer), transformer_args, {"parser": self})
                                     continue
                                 else:
                                     value = transformer(*transformer_args, parser=self)
@@ -227,8 +228,7 @@ class XMLParser(Parser):
 
                     # handle m2m
                     for transformer, args, kwargs in many_to_many.values():
-                        getattr(instance, transformer)(*args, **kwargs)
-
+                        transformer(*args, **kwargs)
 
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
