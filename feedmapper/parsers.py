@@ -89,7 +89,7 @@ class XMLParser(Parser):
         :return:
         """
         context = node
-        if path.startswith("~"):
+        if path.startswith("/"):
             path = path[1:]
             context = node.getroottree()
 
