@@ -91,7 +91,7 @@ class XMLParser(Parser):
         context = node
         if path.startswith("~"):
             path = path[1:]
-            context = node.getroot()
+            context = node.getroottree()
 
         if '@' in path:
             if path.count('@') > 1:
