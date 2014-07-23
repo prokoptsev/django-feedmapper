@@ -177,19 +177,25 @@ class XMLParser(Parser):
 
                     many_to_many = {}
                     for field, target in fields.items():
-                        # if field != identifier:
-                        if isinstance(target, basestring):
-                            # maps one model field to one feed node
-                            value = self.get_value(node, target)
-                        elif isinstance(target, list):
-                            # maps one model field to multiple feed nodes
-                            value = self.join_fields(node, target)
-                        elif isinstance(target, dict):
+
+                        transformer = getattr(instance, "parse_%s" % field, None)
+
+                        if not transformer:
+                            if isinstance(target, basestring):
+                                # maps one model field to one feed node
+                                value = self.get_value(node, target)
+                            elif isinstance(target, list):
+                                # maps one model field to multiple feed nodes
+                                value = self.join_fields(node, target)
+
+                        elif transformer or isinstance(target, dict):
+                            # we may have a transformer (parse_fieldname method) or an extended definition
                             value = None
                             if 'transformer' in target:
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
 
+                            if transformer:
                                 transformer_args = []
 
                                 field_is_m2m = False
@@ -211,7 +217,6 @@ class XMLParser(Parser):
                                     continue
                                 else:
                                     value = transformer(*transformer_args, parser=self)
-
 
                             if 'default' in target and not value:
                                 # maps one model field to a default value
