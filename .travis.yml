@@ -1,6 +1,6 @@
 language: python
 install:
-  - pip install tox codecov
+  - pip install tox coverage codecov
 script:
   - tox
 env:

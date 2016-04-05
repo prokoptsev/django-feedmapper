@@ -1,3 +1,9 @@
+.. image:: https://travis-ci.org/prokoptsev/django-feedmapper.svg?branch=master
+    :target: https://travis-ci.org/prokoptsev/django-feedmapper
+
+.. image:: https://codecov.io/github/prokoptsev/django-feedmapper/coverage.svg?branch=master
+    :target: https://codecov.io/github/prokoptsev/django-feedmapper?branch=master
+
 django-feedmapper
 =================
 
