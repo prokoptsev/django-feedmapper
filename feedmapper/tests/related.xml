@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf8"?>
+<feed version="1.1">
+  <events>
+    <event id="1" price="true" type="category1">
+      <title><![CDATA[La<strong>BEL</strong>]]></title>
+      <tags>
+        <tag>tag_1</tag>
+        <tag>tag_2</tag>
+      </tags>
+      <text><![CDATA[<p>some text for event</p>]]></text>
+    </event>
+    <event id="2" price="false" type="category2">
+      <title>Label 2</title>
+      <tags>
+        <tag>tag_1</tag>
+      </tags>
+    </event>
+  </events>
+  <places>
+    <place id="1">
+      <title>place 1</title>
+      <coordinates latitude="59.906923" longitude="30.307352"/>
+      <tags>
+        <tag>tag_2</tag>
+      </tags>
+    </place>
+    <place id="2">
+      <title>place 2</title>
+    </place>
+  </places>
+  <schedule>
+    <session date="2016-03-20" event="1" place="1" time="20:00"/>
+    <session date="2016-09-28" event="2" place="2" time="08:10" timetill="16:00"/>
+  </schedule>
+</feed>

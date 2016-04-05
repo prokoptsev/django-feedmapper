@@ -12,12 +12,13 @@
                             "id": "id",
                             "combined": ["email", "first_name", "last_name"],
                             "email": "email",
-                            "nick": "username.@nick",
+                            "nick": ".username.@nick",
                             "name": {
                               "transformer": "convert_name",
                               "fields": ["first_name", "last_name"]
                             },
                             "other": {
+                              "field": "additionally",
                               "default": "default value from mapping"
                             },
                             "master": "."
@@ -71,6 +72,53 @@
             },
             "purge": false,
             "label": "Rich Testing"
+        }
+    },
+    {
+        "pk": 4,
+        "model": "feedmapper.mapping",
+        "fields": {
+            "source": "REPLACED IN TESTS",
+            "parser": "feedmapper.parsers.XMLParser",
+            "data_map": {
+                "models": {
+                    "tests.Event": {
+                        "fields": {
+                            "id": ".@id",
+                            "title": "title",
+                            "is_free": ".@price"
+                        },
+                        "identifier": "id",
+                        "nodePath": "events.event"
+                    },
+                    "tests.Place": {
+                        "fields": {
+                            "id": ".@id",
+                            "title": "title",
+                            "latitude": "coordinates.@latitude",
+                            "longitude": "coordinates.@longitude"
+                        },
+                        "identifier": "id",
+                        "nodePath": "places.place"
+                    },
+                    "tests.Schedule": {
+                        "fields": {
+                            "event_id": ".@event",
+                            "place_id": ".@place",
+                            "date": ".@date",
+                            "start_time": ".@time",
+                            "finish_time": {
+                                "field": ".@timetill",
+                                "default": null
+                            }
+                        },
+                        "identifier": "id",
+                        "nodePath": "schedule.session"
+                    }
+                }
+            },
+            "purge": true,
+            "label": "related models"
         }
     }
 ]

@@ -1,5 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals, absolute_import
+from datetime import date, time
 import os
 
 from django.test import TestCase
@@ -7,7 +8,7 @@ from django.test import TestCase
 from feedmapper.models import Mapping
 from feedmapper.parsers import XMLParser
 
-from .models import Thing
+from .models import Thing, Event, Place, Schedule
 
 try:
     from unittest import mock
@@ -88,6 +89,8 @@ class FeedMapperTests(TestCase):
         Ensure the parser uses a default value if necessary.
         """
         thing = Thing.objects.get(pk=1)
+        self.assertEqual(thing.other, "The dark side of the force")
+        thing = Thing.objects.get(pk=2)
         self.assertEqual(thing.other, "default value from mapping")
 
     def test_parser_one_to_transformer(self):
@@ -182,3 +185,29 @@ class FeedMapperTests(TestCase):
         mapping.parse()
         self.assertEqual(mapping.parse_log, "")
         self.assertTrue(mapping.parse_succeeded)
+
+    def test_multi_model(self):
+        mapping = Mapping.objects.get(pk=4)
+        mapping.source = os.path.join(TEST_DIR, "related.xml")
+        mapping.parse()
+        event1 = Event.objects.get(pk=1)
+        event2 = Event.objects.get(pk=2)
+        place1 = Place.objects.get(pk=1)
+        place2 = Place.objects.get(pk=2)
+        self.assertIn(event1, place1.events.all())
+        self.assertIn(event2, place2.events.all())
+
+        session1 = Schedule.objects.get(pk=1)
+        session2 = Schedule.objects.get(pk=2)
+        self.assertEquals(session1.event, event1)
+        self.assertEquals(session1.place, place1)
+        self.assertEquals(session2.event, event2)
+        self.assertEquals(session2.place, place2)
+
+        self.assertEquals(session1.date, date(2016, 3, 20))
+        self.assertEquals(session1.start_time, time(20, 0))
+        self.assertIsNone(session1.finish_time)
+
+        self.assertEquals(session2.date, date(2016, 9, 28))
+        self.assertEquals(session2.start_time, time(8, 10))
+        self.assertEquals(session2.finish_time, time(16, 0))

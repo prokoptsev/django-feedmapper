@@ -5,11 +5,8 @@ from datetime import datetime
 
 from lxml import etree
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import six
 from django.apps import apps
-from django.template.loader import render_to_string
 
 from .settings import FEEDMAPPER
 
@@ -63,16 +60,6 @@ class Parser(object):
         Notify recipients, if specified, of an error during parsing.
         """
 
-        if not subject:
-            subject = "django-feedmapper parsing failure notice"
-        message = render_to_string('feedmapper/notify_failure.txt', {
-            'mapping': self.mapping,
-            'parse_attempted': self.mapping.parse_attempted,
-            'parse_log': self.mapping.parse_log
-        })
-        recipients = self.mapping.notification_recipients.split('\r\n')
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipients)
-
     def parse(self):
         raise NotImplementedError("You must override the parse method in a Parser subclass.")
 
@@ -86,12 +73,11 @@ class XMLParser(Parser):
         super(XMLParser, self).__init__(mapping)
         self.nsmap.update({'content': "http://purl.org/rss/1.0/modules/content/"})
 
-    def get_value(self, node, path, as_text=True):
+    def get_value(self, node, path):
         """
         Attempts to retrieve either the node text or node attribute specified.
         :param node:
         :param path:
-        :param as_text:
         :return:
         """
         context = node
@@ -103,7 +89,12 @@ class XMLParser(Parser):
             if path.count('@') > 1:
                 raise ValueError("You have more than one attribute accessor. (e.g. foo.@bar.@baz)")
             path, attr = path.rsplit('.@')
-            resolved = context.find(path, namespaces=self.nsmap).attrib.get(attr, "")
+            if path:
+                resolved = context.find(path, namespaces=self.nsmap)
+                if resolved is not None:
+                    resolved = resolved.attrib.get(attr, "")
+            else:
+                resolved = context.attrib.get(attr, "")
         else:
             if path == ".":
                 # this will get text in an XML node, regardless of placement
@@ -111,9 +102,9 @@ class XMLParser(Parser):
             else:
                 # fixme: hacky shit; separate get_value to get_value and get_value_text
                 resolved = context.findall(path, namespaces=self.nsmap)
-                resolved = ((len(resolved) > 0 and resolved[0].text) or "") if as_text else resolved
+                resolved = ((len(resolved) > 0 and resolved[0].text) or "")
 
-        return resolved.strip() if as_text else resolved
+        return resolved.strip() if resolved is not None else None
 
     def join_fields(self, node, fields):
         """
@@ -165,81 +156,49 @@ class XMLParser(Parser):
                     existing_items.delete()
 
                 for node in nodes:
-                    if self.mapping.purge:
-                        instance = model()
-                    else:
+                    instance = model()
+                    if not self.mapping.purge:
                         # purge is turned off, retrieve an existing instance
                         identifier_value = node.find(identifier, namespaces=self.nsmap).text
                         if identifier_transformer:
                             identifier_value = getattr(model, identifier_transformer)(identifier_value, parser=self)
 
                         kwargs = {identifier: identifier_value}
-                        # TODO: get_or_create
-                        try:
-                            instance = model.objects.get(**kwargs)
-                        except model.DoesNotExist:
-                            instance = model(**kwargs)
+                        instance, created = model.objects.get_or_create(**kwargs)
 
-                    many_to_many = {}
                     for field, target in fields.items():
+                        value = None
+                        transformer = None
+                        transformer_args = []
 
-                        transformer = getattr(instance, "parse_%s" % field, None)
+                        if isinstance(target, six.string_types):
+                            # maps one model field to one feed node
+                            value = self.get_value(node, target)
+                        elif isinstance(target, list):
+                            # maps one model field to multiple feed nodes
+                            value = self.join_fields(node, target)
+                        elif isinstance(target, dict):
+                            if 'field' in target:
+                                value = self.get_value(node, target['field'])
 
-                        if not transformer:
-                            if isinstance(target, six.string_types):
-                                # maps one model field to one feed node
-                                value = self.get_value(node, target)
-                            elif isinstance(target, list):
-                                # maps one model field to multiple feed nodes
-                                value = self.join_fields(node, target)
-
-                        if transformer or isinstance(target, dict):
-                            # we may have a transformer (parse_fieldname method) or an extended definition
-                            value = None
                             if 'transformer' in target:
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
-                            elif 'default' in target and not value:
+                                if value:
+                                    transformer_args = [value]
+                                elif 'fields' in target:
+                                    for target_field in target['fields']:
+                                        transformer_args.append(self.get_value(node, target_field))
+
+                            if 'default' in target and not (value or transformer):
                                 # maps one model field to a default value
                                 value = target['default']
-                            else:
-                                # we've got a single field definition with an implicit transformer
-                                target = {"fields": [target]}
 
                             if transformer:
-                                transformer_args = []
-
-                                field_is_m2m = False
-                                if len(target["fields"]) == 1 and target["fields"][0].endswith("*"):
-                                    # we've hit a many2many relation
-                                    transformer_args = self.get_value(node, target["fields"][0][:-1], as_text=False)
-                                    field_is_m2m = True
-
-                                else:
-                                    for target_field in target["fields"]:
-
-                                        if target_field.endswith("*"):
-                                            raise ValueError(u"M2m fields can only contain one target field")
-                                        else:
-                                            transformer_args.append(self.get_value(node, target_field))
-
-                                if field_is_m2m:
-                                    many_to_many[field] = (
-                                        transformer, transformer_args, {"parser": self}
-                                    )
-                                    continue
-                                else:
-                                    try:
-                                        value = transformer(*transformer_args, parser=self)
-                                    except TypeError:
-                                        value = transformer(*transformer_args)
-
+                                value = transformer(*transformer_args)
                         setattr(instance, field, value)
-                    instance.save()
 
-                    # handle m2m
-                    for transformer, args, kwargs in many_to_many.values():
-                        transformer(*args, **kwargs)
+                    instance.save()
 
             self.mapping.parse_succeeded = True
             self.mapping.parse_log = ""
