@@ -1,0 +1,14 @@
+language: python
+install:
+  - pip install tox codecov
+script:
+  - tox
+env:
+  - TOXENV=py27-django17
+  - TOXENV=py27-django18
+  - TOXENV=py27-django19
+  - TOXENV=py34-django17
+  - TOXENV=py34-django18
+  - TOXENV=py34-django19
+after_success:
+  - codecov
