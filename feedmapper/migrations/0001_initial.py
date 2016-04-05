@@ -1,49 +1,31 @@
-# encoding: utf-8
-import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+# coding: utf-8
+from __future__ import unicode_literals
 
-class Migration(SchemaMigration):
-
-    def forwards(self, orm):
-        
-        # Adding model 'Mapping'
-        db.create_table('feedmapper_mapping', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('label', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('source', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('parser', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('purge', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('data_map', self.gf('django.db.models.fields.TextField')(default='{}')),
-            ('notification_recipients', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('parse_attempted', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('parse_succeeded', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('parse_log', self.gf('django.db.models.fields.TextField')(blank=True)),
-        ))
-        db.send_create_signal('feedmapper', ['Mapping'])
+from django.db import migrations, models
+import jsonfield.fields
 
 
-    def backwards(self, orm):
-        
-        # Deleting model 'Mapping'
-        db.delete_table('feedmapper_mapping')
+class Migration(migrations.Migration):
 
+    initial = True
 
-    models = {
-        'feedmapper.mapping': {
-            'Meta': {'object_name': 'Mapping'},
-            'data_map': ('django.db.models.fields.TextField', [], {'default': "'{}'"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'label': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'notification_recipients': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'parse_attempted': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'parse_log': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'parse_succeeded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'parser': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'purge': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'source': ('django.db.models.fields.CharField', [], {'max_length': '255'})
-        }
-    }
+    dependencies = [
+    ]
 
-    complete_apps = ['feedmapper']
+    operations = [
+        migrations.CreateModel(
+            name='Mapping',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('label', models.CharField(help_text='Label for your reference', max_length=255, verbose_name='label')),
+                ('source', models.CharField(help_text='The source feed for your data', max_length=255, verbose_name='source')),
+                ('parser', models.CharField(choices=[('feedmapper.parsers.AtomParser', 'Atom'), ('feedmapper.parsers.XMLParser', 'XML')], help_text='Which parser to use when synchronizing', max_length=255, verbose_name='parser')),
+                ('purge', models.BooleanField(default=False, help_text='Purge existing items on sync?', verbose_name='purge')),
+                ('data_map', jsonfield.fields.JSONField(verbose_name='data map')),
+                ('notification_recipients', models.TextField(blank=True, help_text='Specify one email address per line to be notified of parsing errors.', verbose_name='notification recipients')),
+                ('parse_attempted', models.DateTimeField(blank=True, null=True, verbose_name='parse attempted')),
+                ('parse_succeeded', models.BooleanField(default=False, verbose_name='parse succeeded')),
+                ('parse_log', models.TextField(blank=True, verbose_name='parse log')),
+            ],
+        ),
+    ]

@@ -1,10 +1,14 @@
+# coding: utf-8
+from __future__ import unicode_literals, absolute_import
 import os
 from datetime import datetime
+
 from lxml import etree
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import get_model
+from django.utils import six
+from django.apps import apps
 from django.template.loader import render_to_string
 
 from .settings import FEEDMAPPER
@@ -30,7 +34,7 @@ class Parser(object):
 
     @property
     def data_source(self):
-        if not self.mapping.source.startswith('/') and not '://' in self.mapping.source:
+        if not self.mapping.source.startswith('/') and '://' not in self.mapping.source:
             return os.path.join(self.data_dir, self.mapping.source)
         return self.mapping.source
 
@@ -38,15 +42,17 @@ class Parser(object):
         """
         Validate that a model in the JSON mapping is in the format app.model.
         """
-        if not '.' in model_string or model_string.count('.') > 1:
+        if '.' not in model_string or model_string.count('.') > 1:
             return False
         return True
 
     def generate_filter_kwargs(self, filter_string):
         """
         Convert a string to kwargs that can be passed to the Django ORM's filter
-        method. For example, 'slug__icontains="darth", name="Anakin"' will get
-        converted to {'slug__icontains': 'darth', 'name': 'Anakin'}.
+        method.
+
+        >>> Parser(None).generate_filter_kwargs('slug__icontains="darth", name="Anakin"')
+        {'slug__icontains': 'darth', 'name': 'Anakin'}
         """
         filters = filter_string.replace('"', '').replace("'", '').split(',')
         filter_kwargs = dict([str(filter).strip().split('=') for filter in filters])
@@ -144,7 +150,7 @@ class XMLParser(Parser):
 
                 if not identifier and not self.mapping.purge:
                     raise UserWarning("Purging is off and the JSON mapping doesn't supply an identifier.")
-                model = get_model(*model_string.split('.'))
+                model = apps.get_model(*model_string.split('.'))
                 node_path = configuration['nodePath'].replace('.', '/')
                 fields = configuration['fields']
                 nodes = root.xpath(node_path, namespaces=self.nsmap)
@@ -168,6 +174,7 @@ class XMLParser(Parser):
                             identifier_value = getattr(model, identifier_transformer)(identifier_value, parser=self)
 
                         kwargs = {identifier: identifier_value}
+                        # TODO: get_or_create
                         try:
                             instance = model.objects.get(**kwargs)
                         except model.DoesNotExist:
@@ -179,19 +186,22 @@ class XMLParser(Parser):
                         transformer = getattr(instance, "parse_%s" % field, None)
 
                         if not transformer:
-                            if isinstance(target, basestring):
+                            if isinstance(target, six.string_types):
                                 # maps one model field to one feed node
                                 value = self.get_value(node, target)
                             elif isinstance(target, list):
                                 # maps one model field to multiple feed nodes
                                 value = self.join_fields(node, target)
 
-                        elif transformer or isinstance(target, dict):
+                        if transformer or isinstance(target, dict):
                             # we may have a transformer (parse_fieldname method) or an extended definition
                             value = None
                             if 'transformer' in target:
                                 # maps one model field to a transformer method
                                 transformer = getattr(instance, target['transformer'])
+                            elif 'default' in target and not value:
+                                # maps one model field to a default value
+                                value = target['default']
                             else:
                                 # we've got a single field definition with an implicit transformer
                                 target = {"fields": [target]}
@@ -219,11 +229,11 @@ class XMLParser(Parser):
                                     )
                                     continue
                                 else:
-                                    value = transformer(*transformer_args, parser=self)
+                                    try:
+                                        value = transformer(*transformer_args, parser=self)
+                                    except TypeError:
+                                        value = transformer(*transformer_args)
 
-                            if 'default' in target and not value:
-                                # maps one model field to a default value
-                                value = target['default']
                         setattr(instance, field, value)
                     instance.save()
 

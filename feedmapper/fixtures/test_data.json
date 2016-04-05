@@ -1,18 +1,18 @@
 [
     {
-        "pk": 1, 
-        "model": "feedmapper.mapping", 
+        "pk": 1,
+        "model": "feedmapper.mapping",
         "fields": {
-            "source": "REPLACED IN TESTS", 
-            "parser": "feedmapper.parsers.XMLParser", 
+            "source": "REPLACED IN TESTS",
+            "parser": "feedmapper.parsers.XMLParser",
             "data_map": {
                 "models": {
-                    "feedmapper.Thing": {
+                    "tests.Thing": {
                         "fields": {
                             "id": "id",
                             "combined": ["email", "first_name", "last_name"],
-                            "email": "email", 
-                            "nick": "username.@nick", 
+                            "email": "email",
+                            "nick": "username.@nick",
                             "name": {
                               "transformer": "convert_name",
                               "fields": ["first_name", "last_name"]
@@ -26,40 +26,40 @@
                         "nodePath": "users.user"
                     }
                 }
-            }, 
-            "purge": false, 
+            },
+            "purge": false,
             "label": "Clean mapping"
         }
     },
     {
-        "pk": 2, 
-        "model": "feedmapper.mapping", 
+        "pk": 2,
+        "model": "feedmapper.mapping",
         "fields": {
-            "source": "REPLACED IN TESTS", 
-            "parser": "feedmapper.parsers.XMLParser", 
+            "source": "REPLACED IN TESTS",
+            "parser": "feedmapper.parsers.XMLParser",
             "data_map": {
                 "models": {
-                    "feedmapper.Thing": {
+                    "tests.Thing": {
                         "fields": {
                             "email": "email"
                         },
                         "nodePath": "users.user"
                     }
                 }
-            }, 
-            "purge": false, 
+            },
+            "purge": false,
             "label": "Exception raising mapping"
         }
     },
     {
-        "pk": 3, 
-        "model": "feedmapper.mapping", 
+        "pk": 3,
+        "model": "feedmapper.mapping",
         "fields": {
-            "source": "REPLACED IN TESTS", 
-            "parser": "feedmapper.parsers.AtomParser", 
+            "source": "REPLACED IN TESTS",
+            "parser": "feedmapper.parsers.AtomParser",
             "data_map": {
                 "models": {
-                    "feedmapper.AtomEntry": {
+                    "tests.AtomEntry": {
                         "fields": {
                             "atom_id": "id",
                             "title": "title"
@@ -68,8 +68,8 @@
                         "nodePath": "entry"
                     }
                 }
-            }, 
-            "purge": false, 
+            },
+            "purge": false,
             "label": "Rich Testing"
         }
     }

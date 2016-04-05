@@ -1,13 +1,15 @@
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from jsonfield import JSONField
 
-from .fields import JSONField
 from .settings import FEEDMAPPER
 
 
 class Mapping(models.Model):
-    "Represents a mapping of model fields to feed nodes or attributes."
+    """
+    Represents a mapping of model fields to feed nodes or attributes.
+    """
     label = models.CharField(_("label"), max_length=255, help_text=_("Label for your reference"))
     source = models.CharField(_("source"), max_length=255, help_text=_("The source feed for your data"))
     parser = models.CharField(_("parser"), max_length=255, choices=FEEDMAPPER['PARSER_CHOICES'], help_text=_("Which parser to use when synchronizing"))
@@ -22,7 +24,9 @@ class Mapping(models.Model):
         return self.label
 
     def parse(self):
-        "Dynamically pull in this mapping's parser and parse the mapping."
+        """
+        Dynamically pull in this mapping's parser and parse the mapping.
+        """
         module_path, parser_class = self.parser.rsplit('.', 1)
         module = __import__(module_path, fromlist=[parser_class])
         parser_class = getattr(module, parser_class)
@@ -31,7 +35,9 @@ class Mapping(models.Model):
 
     if 'djcelery' in settings.INSTALLED_APPS:
         def save(self, *args, **kwargs):
-            "Create or update a django-celery periodic task for this mapping."
+            """
+            Create or update a django-celery periodic task for this mapping.
+            """
             super(Mapping, self).save(*args, **kwargs)
             from djcelery.models import CrontabSchedule, PeriodicTask
             crontab, created = CrontabSchedule.objects.get_or_create(minute='0', hour='*', day_of_week='*')

@@ -1,3 +1,5 @@
+# coding: utf-8
+from __future__ import unicode_literals, absolute_import
 from celery.task import task
 
 from .models import Mapping
@@ -5,7 +7,9 @@ from .models import Mapping
 
 @task
 def feedmapper_sync(mapping_id):
-    "Grab the requested Mapping and parse it."
+    """
+    Grab the requested Mapping and parse it.
+    """
     try:
         mapping = Mapping.objects.get(pk=mapping_id)
         mapping.parse()

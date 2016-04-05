@@ -9,6 +9,7 @@ __version_info__ = {
     'serial': 0
 }
 
+
 def get_version():
     """
     Return the formatted version information
@@ -21,5 +22,5 @@ def get_version():
         vers.append('%(releaselevel)s%(serial)i' % __version_info__)
     return ''.join(vers)
 
-__version__ = get_version()
 
+__version__ = get_version()
