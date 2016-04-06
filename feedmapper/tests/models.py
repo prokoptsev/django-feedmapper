@@ -29,7 +29,7 @@ class Thing(models.Model):
 
 class Event(models.Model):
     title = models.CharField(max_length=255)
-    is_free = models.BooleanField()
+    is_free = models.NullBooleanField()
 
     def __str__(self):
         return self.title
@@ -37,8 +37,8 @@ class Event(models.Model):
 
 class Place(models.Model):
     title = models.CharField(max_length=255)
-    latitude = models.DecimalField(max_length=10, decimal_places=6, null=True)
-    longitude = models.DecimalField(max_length=10, decimal_places=6, null=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=6, null=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True)
     events = models.ManyToManyField("Event", through="Schedule")
 
 
